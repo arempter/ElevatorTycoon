@@ -12,10 +12,10 @@ import scala.concurrent.{ Await, ExecutionContext }
 
 class SchedulerImplSpec extends AnyFlatSpec with Diagrams {
 
-  implicit val testSystem = ActorSystem("specTest")
+  implicit val testSystem: ActorSystem = ActorSystem("specTest")
   implicit val testEC: ExecutionContext = testSystem.dispatcher
 
-  def withScheduler(testCode: ElevatorScheduler => Any) = {
+  def withScheduler(testCode: ElevatorScheduler => Any): Any = {
     try {
       testCode(elevatorSchedulerMock)
     } catch {
@@ -39,7 +39,7 @@ class SchedulerImplSpec extends AnyFlatSpec with Diagrams {
   }
 
   it should "send elevator up on user selecting new floor" in withScheduler { scheduler =>
-    val ns = ElevatorStatus(15, 0, 3)
+    val ns = ElevatorStatus(15, 0, Seq(3))
     val rideF = scheduler.scheduleRide(ns)
     Await.ready(rideF, 2.seconds)
     findId(ns.id, scheduler.status()).map(s => assert(s.floor == 3))
@@ -49,7 +49,7 @@ class SchedulerImplSpec extends AnyFlatSpec with Diagrams {
     val rideF =
       for {
         r <- scheduler.scheduleRide(PickupRequest(3, 1))
-        _ <- scheduler.scheduleRide(ElevatorStatus(r.id, 3, 1))
+        _ <- scheduler.scheduleRide(ElevatorStatus(r.id, 3, Seq(1)))
       } yield r
     Await.ready(rideF, 6.seconds)
 

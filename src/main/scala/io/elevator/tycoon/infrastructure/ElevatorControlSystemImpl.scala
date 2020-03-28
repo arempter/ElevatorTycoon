@@ -20,7 +20,7 @@ trait ElevatorControlSystemImpl extends ElevatorControlSystem with LazyLogging w
   // let's assume that day starts with all lifts at ground 0
   private val starOfDayStatus = (1 to noOfElevators).map(i => ElevatorStatus(i))
   // should be moved to actor to maintain mutable state, but with Q ok for now
-  protected val elevatorsState = ListBuffer(starOfDayStatus: _*)
+  private val elevatorsState = ListBuffer(starOfDayStatus: _*)
 
   // queue to receive updates from lifts
   private lazy val queue = Source.queue[ElevatorStatus](100, OverflowStrategy.dropNew)
@@ -33,7 +33,7 @@ trait ElevatorControlSystemImpl extends ElevatorControlSystem with LazyLogging w
 
   // should not be used without queue with multithreading
   private def updateState(newStatus: ElevatorStatus): Future[Unit] = Future {
-    val updateContMeet = newStatus.floor <= noOfFloors && newStatus.goalFloor <= noOfFloors
+    val updateContMeet = newStatus.floor <= noOfFloors && newStatus.goalFloor.map(f => f <= noOfFloors).reduce(_ && _)
     val noStatusChange: ElevatorStatus => Boolean = status => status.id == newStatus.id && status.floor == newStatus.floor && status.goalFloor == newStatus.goalFloor
 
     if (newStatus.id <= noOfElevators) {
@@ -58,7 +58,10 @@ trait ElevatorControlSystemImpl extends ElevatorControlSystem with LazyLogging w
     case QueueOfferResult.QueueClosed => logger.error("Source Queue closed")
   }
 
-  override def status(): Seq[ElevatorStatus] = elevatorsState.sortBy(_.floor)(Ordering.Int).toList
+  override def status(): Seq[ElevatorStatus] =
+    elevatorsState
+      .sortBy(_.floor)(Ordering.Int)
+      .map(e => e.copy(goalFloor = e.goalFloor.sorted(Ordering.Int))).toList
 
   // call lift
   override def pickup(pickupRequest: PickupRequest): Future[ElevatorStatus] = scheduleRide(pickupRequest)

@@ -15,7 +15,7 @@ class ECSImplSpec extends AnyFlatSpec with Diagrams {
   private val testEC = testSystem.dispatcher
   private val testMat = Materializer(testSystem)
 
-  def withECS(testCode: ElevatorControlSystemImpl => Any) = {
+  def withECS(testCode: ElevatorControlSystemImpl => Any): Any = {
     try {
       testCode(elevatorControlSystemImplMock)
     } catch {
@@ -30,27 +30,27 @@ class ECSImplSpec extends AnyFlatSpec with Diagrams {
     override val nextFloorTime: Int = 10
   }
 
-  private def findId(ecs: ElevatorControlSystem, id: Int): Option[ElevatorStatus] = ecs.status().find(e => e.id == id).headOption
+  private def findId(ecs: ElevatorControlSystem, id: Int): Option[ElevatorStatus] = ecs.status().find(e => e.id == id)
 
   "ECSImplSpec" should "not change state for the same values" in withECS { ecs =>
     val ns = ElevatorStatus(1)
     ecs.update(ns)
     Thread.sleep(100)
 
-    findId(ecs, 1).map(lift => assert(lift.id == 1 && lift.floor == 0 && lift.goalFloor == 0))
+    findId(ecs, 1).map(lift => assert(lift.id == 1 && lift.floor == 0 && lift.goalFloor.last == 0))
   }
   it should "update global state on Elevator state change" in withECS { ecs =>
-    val ns = ElevatorStatus(15, 2, 3)
+    val ns = ElevatorStatus(15, 2, Seq(3))
     ecs.update(ns)
     Thread.sleep(100)
-    findId(ecs, ns.id).map(lift => assert(lift.id == 15 && lift.floor == 2 && lift.goalFloor == 3))
+    findId(ecs, ns.id).map(lift => assert(lift.id == 15 && lift.floor == 2 && lift.goalFloor.last == 3))
   }
 
   it should "not update state if floor number is incorrect" in withECS { ecs =>
-    val ns = ElevatorStatus(16, 2, 11)
+    val ns = ElevatorStatus(16, 2, Seq(11))
     ecs.update(ns)
     Thread.sleep(100)
-    findId(ecs, ns.id).map(lift => assert(lift.id == 16 && lift.floor == 0 && lift.goalFloor == 0))
+    findId(ecs, ns.id).map(lift => assert(lift.id == 16 && lift.floor == 0 && lift.goalFloor.last == 0))
   }
 
   it should "not update state if elevator id is incorrect" in withECS { ecs =>

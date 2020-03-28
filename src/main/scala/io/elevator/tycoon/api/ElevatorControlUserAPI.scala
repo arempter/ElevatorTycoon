@@ -34,7 +34,13 @@ trait ElevatorControlUserAPI extends JsonSupport {
       }
     } ~ get {
       path("elevators" / IntNumber / "from" / IntNumber / "go" / IntNumber) { (id, floor, goalFloor) =>
-        execRequest(ride(ElevatorStatus(id, floor, goalFloor)))
+        execRequest(ride(ElevatorStatus(id, floor, Seq(goalFloor))))
+      }
+    } ~ post {
+      path("elevators" / "ride") {
+        entity(as[ElevatorStatus]) { es =>
+          execRequest(ride(es))
+        }
       }
     }
 
