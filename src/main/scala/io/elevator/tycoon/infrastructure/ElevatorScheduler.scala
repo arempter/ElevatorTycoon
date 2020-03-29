@@ -1,7 +1,5 @@
 package io.elevator.tycoon.infrastructure
 
-import java.util.concurrent.atomic.AtomicLong
-
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
@@ -34,7 +32,7 @@ trait ElevatorScheduler extends LazyLogging {
         case s              => s.minBy(e => math.abs(e.floor - requestFloor))
       }
 
-  // add timer?
+  // add timer or tries?
   @tailrec
   private def waitForNextArrival(id: Int): Future[ElevatorStatus] =
     findElevatorBy(id) match {
@@ -43,7 +41,7 @@ trait ElevatorScheduler extends LazyLogging {
     }
 
   // todo: add direction in scheduling
-  private def findFreeElevatorWithRetry(requestFloor: Int, retry: AtomicLong = new AtomicLong(0), maxTries: Int = 3): Future[ElevatorStatus] = {
+  private def findFreeElevatorWithRetry(requestFloor: Int): Future[ElevatorStatus] = {
     findClosestStoppedOrMoving(requestFloor) match {
       case nextE if nextE.floor == nextE.goalFloor.last => Future.successful(nextE)
       case nextE =>
